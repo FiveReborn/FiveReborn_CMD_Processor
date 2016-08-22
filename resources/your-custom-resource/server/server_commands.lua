@@ -18,8 +18,8 @@ local MAX_EXCLUDED_CMDS 	= 1000
 local CMDDEBUG_MODE 		= false
 local excludedPlayerCMDS 	= {}
 
---Command exit codes
-local CMD_EXIT_CODE_ERROR, CMD_EXIT_CODE_SUCCESS, CMD_EXIT_CODE_PREPROC_NOT_ALLOWED = 0, 1, 2
+--Command exit codes (Made these global since other scripts may use them)
+CMD_EXIT_CODE_ERROR, CMD_EXIT_CODE_SUCCESS, CMD_EXIT_CODE_PREPROC_NOT_ALLOWED = 0, 1, 2
 
 AddEventHandler('onResourceStart', function(resource)
 	initCommandsArray() --initialize commands array
@@ -36,25 +36,33 @@ AddEventHandler('chatCommandEntered', function(fullcommand) -- Event handler for
 	local command = stringsplit_command(fullcommand, " ") -- Converts the command arguments into an array for easy usage.
 	local cmdname = command[1]
 	local success = ProcessedCMD(source, command)
-	TriggerEvent('OnPlayerCommandProcessed', source, cmdname, success)
+	if OnPlayerCommandProcessed then
+		OnPlayerCommandProcessed(source, cmdname, success)
+	end
 end)
 
---Test functions
-RegisterServerEvent('OnPlayerCommandProcessed') --This is the function that gets called after a command is processed
-AddEventHandler('OnPlayerCommandProcessed', function(source, cmdname, success)
+--[[
+--These functions can be in any given file but they can only be implemented once
+--This function gets called after a command is executed
+function OnPlayerCommandProcessed(source, cmdname, success)
 	if success == CMD_EXIT_CODE_ERROR then
 		TriggerClientEvent('chatMessage', source, '', { 0, 0, 0 }, 'Invalid command: ' .. '"/' .. cmdname .. '".')
 	end
-end)
---End of test functions
+end
+
+--This function can prevent a command from being executed if it returns 0
+function OnPlayerPreProcessCMD(source, command)
+	--TriggerClientEvent('chatMessage', source, '', { 0, 0, 0 }, 'OnPlayerPreProcessCMD: Entered command: ' .. '"/' .. command .. '".')
+	return 1
+end
+]]
 
 function ProcessedCMD(source, command) --This function evaluates if a command can be processed or not. Todo: add a table with loaded commands to restrict them?
 	if string.len(command[1]) then
 		local cmdFunc = "CMD_" .. command[1]
-		local cmdPreProc = "OnPlayerPreProcessCMD"
 		if not isCMDExcludedForPlayer(source, cmdFunc) then
 			if _G[cmdFunc] then 
-				if _G[cmdPreProc] then --Only try and call this if the function is present in the script
+				if OnPlayerPreProcessCMD then --Only try and call this if the function is present in the script
 					local result = OnPlayerPreProcessCMD(source, command[1])
 					if result ~= 1 then
 						return CMD_EXIT_CODE_PREPROC_NOT_ALLOWED
@@ -67,11 +75,6 @@ function ProcessedCMD(source, command) --This function evaluates if a command ca
 		end
 	end
 	return CMD_EXIT_CODE_ERROR
-end
-
-function OnPlayerPreProcessCMD(source, command)
-	--TriggerClientEvent('chatMessage', source, '', { 0, 0, 0 }, 'OnPlayerPreProcessCMD: Entered command: ' .. '"/' .. command .. '".')
-	return 1
 end
 
 function initCommandsArray()
