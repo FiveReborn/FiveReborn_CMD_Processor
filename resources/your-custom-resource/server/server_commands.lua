@@ -26,7 +26,7 @@ local CMD_NAME = 1
 CMD_EXIT_CODE_ERROR, CMD_EXIT_CODE_SUCCESS, CMD_EXIT_CODE_PREPROC_NOT_ALLOWED = 0, 1, 2
 
 AddEventHandler('onResourceStart', function(resource)
-	initCommandsArray() --initialize commands array
+	print('Command resource started!')
 	--[[
 	for i = 1, 32 do
 		excludeCMDForPlayer(i, "CMD_vehicle") --Exclude this command for every single player..
@@ -92,14 +92,12 @@ function ProcessedCMD(source, command) --This function evaluates if a command ca
 	return CMD_EXIT_CODE_ERROR
 end
 
-function initCommandsArray()
-	for i = 1, 32 do
-	    excludedPlayerCMDS[i] = {}
-	    for j = 1, MAX_EXCLUDED_CMDS do
-	        excludedPlayerCMDS[i][j] = 0 -- Fill the values here
-	    end
-	end
-	print('Commands initialized!')
+function initCommandsArray(source)
+    excludedPlayerCMDS[source] = {}
+    for j = 1, MAX_EXCLUDED_CMDS do
+        excludedPlayerCMDS[source][j] = 0 -- Fill the values here
+    end
+	print('excludedPlayerCMDS initialized for player ' .. source)
 end
 
 --simply unloads all commands
@@ -140,6 +138,7 @@ end
 
 RegisterServerEvent("commands_onPlayerJoining")
 AddEventHandler('commands_onPlayerJoining', function()
+	initCommandsArray(source)
 	registerCommandsForPlayer(source)
 end)
 
